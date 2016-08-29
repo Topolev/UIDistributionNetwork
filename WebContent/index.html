@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html ng-app = "ModelNetworkApp">
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="js/angular.min.js"></script>
+<link href="css/bootstrap.css" rel="stylesheet" />
+<link href="css/main.css" rel="stylesheet" />
+<link href="css/bootstrap-theme.css" rel="stylesheet" />
+<script>
+	var cabels = {
+		headers : [{name : "Type", nameValue: "name", visable:true},
+		           {name: "Size", nameValue: "s", visable:true},
+		           {name: "r0, Om//mm2", nameValue: "r0", visable:true},
+		           {name: "x0, Om//mm2", nameValue: "x0", visable:true}],
+		items :[{name : "АС-50", s:"50", r0: 0.125, x0 : 0.4},
+		        {name : "АС-60", s:"70", r0: 0.425, x0 : 0.5	}]
+	};
+	
+	var transforms = {
+			headers : [{name : "Type", nameValue: "name", visable:true},
+			           {name: "Snom", nameValue: "s", visable:true},
+			           {name: "uk, %", nameValue: "uk", visable:true},
+			           {name: "Pk, kW", nameValue: "pk", visable:true},
+			           {name: "Ph, kW", nameValue: "ph", visable:true}],
+			items :[{name : "TM-63", s:"63", pk: 0.125, ph : 0.4, uk:10},
+			        {name : "TM-100", s:"100", pk: 0.425, ph : 0.5, uk:10	}]
+		};
+	
+	var edges = [{begin:"1", end:"2", name : "W1", typeEquipment:"", jsonEquipment:""},
+		         {begin:"1", end:"2", name : "W2", typeEquipment:"cabels", jsonEquipment:{s:50, l:12, r0:0.125, x0:0.4}},
+		         {begin:"1", end:"2", name : "W3", typeEquipment:"cabels", jsonEquipment:""}];
+	
+	var catalogApp = angular.module("ModelNetworkApp",[]);
+	
+	catalogApp.controller("MainCtrl", function($scope){
+		$scope.catalogList = [{typeEquipment: "cabels", desc:"Cabels", table : cabels},
+		                      {typeEquipment: "transforms", desc:"Transforms", table : transforms}];
+		$scope.edges = edges;
+		$scope.choosenCatalog = {};
+		$scope.choosenEquipment = {};
+
+		$scope.getCatalogList = function(){
+			return $scope.catalogList;
+		}
+		
+		$scope.getCatalog = function(typeEquipment){
+			for(var i in $scope.catalogList){
+				if ($scope.catalogList[i].typeEquipment == typeEquipment) return $scope.catalogList[i];
+			}
+		}
+		
+		$scope.addNewElementInCatalog = function(catalog){
+			table = $scope.getCatalog(catalog.typeEquipment).table;
+			var element = {}; 
+			for (var i in table.headers){
+				element[table.headers[i].nameValue] = "";
+			}
+			table.items.push(element);
+		}
+		
+		$scope.deleteElementFromCatalog = function(catalog, item){
+			items = $scope.getCatalog(catalog.typeEquipment).table.items;
+			for (var i in items){
+				if (items[i] === item) {
+					if (!$scope.isChoosenItem(item)) items.splice(i,1);
+					break;
+				}
+			}
+		}
+		
+		$scope.isChoosenItem = function(item){
+			for( var i in $scope.choosenEquipment){
+				if ($scope.choosenEquipment[i] === item) return true;
+			}
+			return false;
+		}
+		
+		/*Methods for working with edges*/
+		$scope.getEdges = function(){
+			return $scope.edges;
+		}
+		$scope.getEdge = function(edge){
+			for (var i in $scope.edges){
+				if ($scope.edges[i] === edge) return $scope.edges[i];
+			}
+		}
+		$scope.deleteEdge = function(edge){
+			for (var i in $scope.edges){
+				if ($scope.edges[i] === edge) $scope.edges.splice(i,1);
+			}
+		}
+		$scope.newEdge = function(){
+			$scope.edges.push({begin:"", end:"", name : "", typeEquipment:"", jsonEquipment:""})
+		}
+		$scope.changeTypeEquipment = function(edge, catalog){
+			edge = $scope.getEdge(edge);
+			edge.typeEquipment = catalog.typeEquipment;
+			switch (catalog.typeEquipment){
+			case "transforms": 
+				edge.jsonEquipment = {s:"",uk:"",ph:"",pk:""};
+				break;
+			case "cabels","overheadlines":
+				edge.jsonEquipment = {s:"",l:"",r0:"",x0:""};
+			}
+		}
+		$scope.getJsonEquipment = function(edge){
+			edge = 	$scope.getEdge(edge);
+			return edge.jsonEquipment;
+		}
+		$scope.setJsonEquipment = function(edge, jsonEquipment){
+			$scope.getEdge(edge).jsonEquipment = jsonEquipment;
+		}
+
+	});
+	
+	catalogApp.controller("CatalogCtrl", function($scope){
+		$scope.catalog = undefined;
+		
+		$scope.addNewElement = function(){
+			$scope.addNewElementInCatalog($scope.catalog);
+		}
+		
+		$scope.deleteElement = function(item){
+			$scope.deleteElementFromCatalog($scope.catalog, item);
+		}
+		
+
+	});
+	
+	
+	catalogApp.controller("EdgeCtrl", function($scope){
+		$scope.edge = undefined;
+		$scope.catalog = undefined;
+		$scope.equipment = null;
+		$scope.filter = [{property: "", changeable: false},
+		                 {property: "", changeable: false},
+		                 {property: "", changeable: false},
+		                 {property: "", changeable: false}];
+		
+		$scope.changeCatalogEdge = function(catalog){
+			$scope.changeTypeEquipment($scope.edge, catalog);
+		}
+		$scope.updateJsonEquipment = function(equipment){
+			console.log("updatJsonEq()");
+			console.log(equipment);
+			/*Customer choose option with value = Customer*/
+			if (equipment === null || equipment === undefined) $scope.createCustomerJsonEquipment()
+			else $scope.createCatalogJsonEquipment(equipment);
+		}
+		$scope.createCustomerJsonEquipment = function(){
+			console.log("EdgeCtrl createCustomerJsonEquipment()")
+			switch ($scope.catalog.typeEquipment){
+			case "transforms" : 
+				$scope.setJsonEquipment($scope.edge, {s:"",uk:"",pk:"",ph:""});
+				$scope.filter = [{property: "s", changeable: true},
+				                 {property: "uk", changeable: true},
+				                 {property: "pk", changeable: true},
+				                 {property: "ph", changeable: true}]
+				break;
+			case "cabels" :
+				$scope.setJsonEquipment($scope.edge, {s:"", l:"", r0: "", x0: ""});
+				$scope.filter = [{property: "s", changeable: true},
+	                			 {property: "l", changeable: true},
+	                 			 {property: "r0", changeable: true},
+	                             {property: "x0", changeable: true}]
+				break;
+			}
+		}
+		$scope.createCatalogJsonEquipment = function(equipment){
+			console.log("EdgeCtrl createCatalogJsonEquipment()")
+			console.log(equipment);
+			switch ($scope.catalog.typeEquipment){
+			case "transforms" : 
+				$scope.setJsonEquipment($scope.edge, {s:equipment.s,uk:equipment.uk,pk:equipment.pk,ph:equipment.ph});
+				$scope.filter = [{property: "s", changeable: false},
+				                 {property: "uk", changeable: false},
+				                 {property: "pk", changeable: false},
+				                 {property: "ph", changeable: false}]
+				break;
+			case "cabels" :
+				$scope.setJsonEquipment($scope.edge, {s:equipment.s, l:equipment.l, r0: equipment.r0, x0: equipment.x0});
+				$scope.filter = [{property: "s", changeable: false},
+	                			 {property: "l", changeable: true},
+	                 			 {property: "r0", changeable: false},
+	                             {property: "x0", changeable: false}]
+				break;
+			}
+		}
+	})
+	
+
+	
+</script>
+	
+</head>
+
+<body ng-controller = "MainCtrl">
+	<div class="container">
+		
+		<div class="catalog" ng-controller = "CatalogCtrl" ng-init="catalog =getCatalog('transforms')">
+			<h1>{{catalog.desc}}</h1>
+			<div>
+				<button class="btn btn-primary" ng-click = "addNewElement()">Create new element</button>
+			</div>
+			<table class="table table-bordered catalog">
+				<thead>
+					<tr>
+						<th></th>
+						<th ng-repeat = "header in catalog.table.headers" ng-if="header.visable">
+							{{header.name}}
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr ng-repeat = "item in catalog.table.items">
+						<td>
+							<a href="" ng-click="deleteElement(item)">
+								<span class="glyphicon glyphicon-remove"></span>
+							</a>
+						</td>
+						<td ng-repeat="header in catalog.table.headers" ng-if="header.visable">
+							<input ng-model = "item[header.nameValue]"/>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<div>Edges Main App: {{edges}}</div>
+	</div>	<!-- end .container -->
+		
+	<div class="container">
+		<h1>Edges</h1>
+		<div>
+			<button class="btn btn-primary" ng-click = "newEdge()">Create new element</button>
+		</div>
+		<table class="table table-bordered edge">
+			<thead>
+				<tr>
+					<th></th>
+					<th colspan=2>Edge</th>
+					<th rowspan=2>Name of edge</th>
+					<th>Transformer:</th>
+					<th>Type</th>
+					<th>S, kVA</th>
+					<th>uk, %</th>
+					<th>PHH, kW</th>
+					<th>PKZ, kW</th>
+				</tr>
+				<tr>
+					<th></th>
+					<th>Begin</th>
+					<th>End</th>
+					<th>Overhead, cable:</th>
+					<th>Mark</th>
+					<th>s, mm2</th>
+					<th>L, km</th>
+					<th>r0, Om/km</th>
+					<th>x0, Om/km</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat = "item in getEdges()" ng-controller = "EdgeCtrl" ng-init="edge = item">
+					<td>
+						<a href="" ng-click="deleteEdge(edge)">
+							<span class="glyphicon glyphicon-remove"></span>
+						</a>
+					</td>
+					<td><input ng-model="edge.begin"/></td>
+					<td><input ng-model="edge.end"/></td>
+					<td><input ng-model="edge.name"/></td>
+					<td>
+						<select ng-model="catalog" 
+						        ng-options = "catalog.desc for catalog in getCatalogList()" 
+						        ng-change="changeCatalogEdge(catalog)"
+						        ng-init = "catalog = getCatalog(edge.typeEquipment)">
+						</select>
+					</td>
+					<td class="grey">
+						<select ng-if = "catalog !== undefined"
+						        ng-model="equipment" 
+						        ng-options = "equipment.name for equipment in getCatalog(edge.typeEquipment).table.items" 
+						        ng-change = "updateJsonEquipment(equipment)"
+						        ng-init = "updateJsonEquipment(equipment)">
+							<option value="">Customer</option>
+						</select>
+					</td>
+					<td ng-repeat = "property in filter">
+						<input ng-disabled = "!property.changeable" ng-model="edge.jsonEquipment[property.property]">
+					</td>
+					<!--  
+					<td>Edg {{getEdge()}} </br>Catalog {{getCatalog()}} </br>Equipm {{getEquipment()}}</td>-->
+				</tr>
+			</tbody>
+		</table>
+		
+		Edges: {{edges.items}} 
+	</div>
+
+</body>
+</html>
