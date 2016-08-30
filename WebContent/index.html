@@ -124,6 +124,9 @@
 		$scope.deleteElement = function(item){
 			$scope.deleteElementFromCatalog($scope.catalog, item);
 		}
+		$scope.addNewRow = function(event){
+			if (event.keyCode == 9) $scope.addNewElementInCatalog($scope.catalog);
+		}
 		
 
 	});
@@ -213,14 +216,18 @@
 					</tr>
 				</thead>
 				<tbody>
-					<tr ng-repeat = "item in catalog.table.items">
+					<tr ng-repeat = "item in catalog.table.items" ng-init = "isParentLast = $last">
+						
 						<td>
 							<a href="" ng-click="deleteElement(item)">
 								<span class="glyphicon glyphicon-remove"></span>
 							</a>
 						</td>
 						<td ng-repeat="header in catalog.table.headers" ng-if="header.visable">
-							<input ng-model = "item[header.nameValue]"/>
+							<ng-switch on = "$last && isParentLast">
+								<input ng-model = "item[header.nameValue]" ng-switch-when="true" ng-keydown = "addNewRow($event)"/>
+								<input ng-model = "item[header.nameValue]" ng-switch-when="false"/>
+							</ng-switch>
 						</td>
 					</tr>
 				</tbody>
