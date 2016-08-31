@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html >
+<head>
+<meta charset="UTF-8">
+<title>Insert title here</title>
+<script src="js/angular.min.js"></script>
+<link href="css/bootstrap.css" rel="stylesheet" />
+<link href="css/main.css" rel="stylesheet" />
+<link href="css/bootstrap-theme.css" rel="stylesheet" />
+<script>
+	angular.module("MainApp", [])
+	       .controller("MainCtrl", function($scope){
+	    	   $scope.name = "World";
+	    	   $scope.show = function(index){
+	    		   console.log(index);
+	    	   }
+	       })
+</script>
+</head>
+<body ng-app = "MainApp" ng-controller="MainCtrl">
+	<h1>Hello, {{name}}</h1>
+	<input ng-model = "name">
+	<br/>
+	<div ng-repeat = "item in [0,1,2]">
+		{{item}}
+		{{show($index)}}
+	</div>
+</body>
+</html>
