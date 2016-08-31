@@ -13,10 +13,11 @@
 		           {name: "Size", nameValue: "s", visable:true},
 		           {name: "r0, Om//mm2", nameValue: "r0", visable:true},
 		           {name: "x0, Om//mm2", nameValue: "x0", visable:true}],
-		items :[{name : "АС-50", s:"50", r0: 0.125, x0 : 0.4},
-		        {name : "АС-60", s:"70", r0: 0.425, x0 : 0.5	}]
+		items :[[{property: "name", value: "АС-50"}, {property: "s", value:50}, {property:"r0", value:0.125}, {property:"x0", value:0.4}],
+		        [{property: "name", value: "АС-60"}, {property: "s", value:60}, {property:"r0", value:0.125}, {property:"x0", value:0.4}]]
 	};
 	
+	/*
 	var transforms = {
 			headers : [{name : "Type", nameValue: "name", visable:true},
 			           {name: "Snom", nameValue: "s", visable:true},
@@ -25,7 +26,7 @@
 			           {name: "Ph, kW", nameValue: "ph", visable:true}],
 			items :[{name : "TM-63", s:"63", pk: 0.125, ph : 0.4, uk:10},
 			        {name : "TM-100", s:"100", pk: 0.425, ph : 0.5, uk:10	}]
-		};
+		};*/
 	
 	var edges = [{begin:"1", end:"2", name : "W1", typeEquipment:"", jsonEquipment:""},
 		         {begin:"1", end:"2", name : "W2", typeEquipment:"cabels", jsonEquipment:{s:50, l:12, r0:0.125, x0:0.4}},
@@ -35,7 +36,7 @@
 	
 	catalogApp.controller("MainCtrl", function($scope){
 		$scope.catalogList = [{typeEquipment: "cabels", desc:"Cabels", table : cabels},
-		                      {typeEquipment: "transforms", desc:"Transforms", table : transforms}];
+		                      /*{typeEquipment: "transforms", desc:"Transforms", table : transforms}*/];
 		$scope.edges = edges;
 		$scope.choosenCatalog = {};
 		$scope.choosenEquipment = {};
@@ -50,11 +51,20 @@
 			}
 		}
 		
+		$scope.getPropertyItem = function(item, nameProperty){
+			for (var i in item){
+				if (item[i].property === nameProperty) return item[i]};
+		}
+		
+		$scope.createNewProperty = function(nameProperty){
+			return {property:nameProperty, value:""};
+		}
+		
 		$scope.addNewElementInCatalog = function(catalog){
 			table = $scope.getCatalog(catalog.typeEquipment).table;
-			var element = {}; 
+			var element = []; 
 			for (var i in table.headers){
-				element[table.headers[i].nameValue] = "";
+				element.push($scope.createNewProperty(table.headers[i].nameValue))
 			}
 			table.items.push(element);
 		}
@@ -198,7 +208,7 @@
 <body ng-controller = "MainCtrl">
 	<div class="container">
 		
-		<div class="catalog" ng-controller = "CatalogCtrl" ng-init="catalog =getCatalog('transforms')">
+		<div class="catalog" ng-controller = "CatalogCtrl" ng-init="catalog =getCatalog('cabels')">
 			<h1>{{catalog.desc}}</h1>
 			<div>
 				<button class="btn btn-primary" ng-click = "addNewElement()">Create new element</button>
@@ -219,13 +229,16 @@
 								<span class="glyphicon glyphicon-remove"></span>
 							</a>
 						</td>
-						<td ng-repeat="header in catalog.table.headers" ng-if="header.visable">
-							<input ng-model = "item[header.nameValue]"/>
+						<td ng-if="header.visable"
+							ng-repeat="header in catalog.table.headers" 
+						    ng-init = "property = getPropertyItem(item, header.nameValue)">
+							<input ng-model = "property.value"/>
 						</td>
 					</tr>
 				</tbody>
 			</table>
 		</div>
+		<div>Edges Main App: {{catalogList[0].table.items}}</div>
 		<div>Edges Main App: {{edges}}</div>
 	</div>	<!-- end .container -->
 		
@@ -279,7 +292,7 @@
 					<td class="grey">
 						<select ng-if = "catalog !== undefined"
 						        ng-model="equipment" 
-						        ng-options = "equipment.name for equipment in getCatalog(edge.typeEquipment).table.items" 
+						        ng-options = "getPropertyItem(equipment,'name').value for equipment in getCatalog(edge.typeEquipment).table.items" 
 						        ng-change = "updateJsonEquipment(equipment)"
 						        ng-init = "updateJsonEquipment(equipment)">
 							<option value="">Customer</option>
